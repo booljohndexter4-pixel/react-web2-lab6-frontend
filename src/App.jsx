@@ -42,8 +42,10 @@ function Login({ onLogin, initialError = '' }) {
   return (
     <div className="login-wrap">
       <form className="card login-card" onSubmit={handleSubmit}>
+        <div className="brand-mark" aria-hidden="true">P</div>
+        <p className="eyebrow">LABORATORY EXERCISE NO. 6</p>
         <h1>Product Management System</h1>
-        <p className="muted">Login to continue</p>
+        <p className="login-description">Sign in to manage and view your products.</p>
 
         {error && <div className="alert">{error}</div>}
 
@@ -165,10 +167,14 @@ function Products({ user, onLogout }) {
   return (
     <div className="container">
       <header className="topbar">
-        <h1>Product Management System</h1>
         <div>
-          <span className="muted">
-            Logged in as {user.username} ({user.role})
+          <p className="eyebrow">INVENTORY</p>
+          <h1>Product Management System</h1>
+        </div>
+        <div>
+          <span className="account-name">{user.username}</span>
+          <span className={`role-badge ${isAdmin ? 'admin' : 'user'}`}>
+            {user.role}
           </span>
           <button className="secondary" onClick={onLogout}>
             Logout
@@ -181,7 +187,14 @@ function Products({ user, onLogout }) {
 
       {isAdmin && (
         <form className="card" onSubmit={handleSubmit}>
-          <h2>{editingId ? 'Edit Product' : 'Add Product'}</h2>
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">PRODUCT MANAGEMENT</p>
+              <h2>{editingId ? 'Edit Product' : 'Add Product'}</h2>
+              <p className="section-description">Enter the product details below.</p>
+            </div>
+            {editingId && <span className="editing-badge">Editing #{editingId}</span>}
+          </div>
           <div className="grid">
             <div>
               <label>Product name</label>
@@ -235,7 +248,20 @@ function Products({ user, onLogout }) {
       )}
 
       <div className="card">
-        <h2>{isAdmin ? 'Product List' : 'Products'}</h2>
+        <div className="section-heading list-heading">
+          <div>
+            <p className="eyebrow">CATALOG</p>
+            <h2>{isAdmin ? 'Product List' : 'Products'}</h2>
+            <p className="section-description">
+              {isAdmin ? 'View and manage your inventory.' : 'Browse the available products.'}
+            </p>
+          </div>
+          {!loading && (
+            <span className="count-badge">
+              {products.length} {products.length === 1 ? 'product' : 'products'}
+            </span>
+          )}
+        </div>
         {loading ? (
           <p className="muted">Loading...</p>
         ) : products.length === 0 ? (
