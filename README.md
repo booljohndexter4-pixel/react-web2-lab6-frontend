@@ -1,5 +1,13 @@
 # React + Vite
 
+## Product Management System
+
+Run the frontend locally with `npm install` and `npm run dev`. The app reads the public API origin from `VITE_API_URL`, configured in `.env.development` and `.env.production`; these files contain no credentials.
+
+Both roles can view products. Only admins see the add, edit, and delete controls, and the API independently enforces admin-only product mutations.
+
+Run `npm run build` to create the production bundle and `npm run lint` to check the code.
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:

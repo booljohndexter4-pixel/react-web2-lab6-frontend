@@ -16,10 +16,10 @@ const getError = (err) =>
   err.response?.data?.error || err.message || 'Something went wrong'
 
 /* ---------------------------- LOGIN ---------------------------- */
-function Login({ onLogin }) {
+function Login({ onLogin, initialError = '' }) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
+  const [error, setError] = useState(initialError)
   const [loading, setLoading] = useState(false)
 
   const handleSubmit = async (e) => {
@@ -31,7 +31,7 @@ function Login({ onLogin }) {
       localStorage.setItem('access_token', data.tokens.access_token)
       localStorage.setItem('refresh_token', data.tokens.refresh_token)
       localStorage.setItem('username', data.user.username)
-      onLogin(data.user.username)
+      onLogin(data.user)
     } catch (err) {
       setError(getError(err))
     } finally {
@@ -75,13 +75,14 @@ function Login({ onLogin }) {
 /* ------------------------- PRODUCT LIST ------------------------- */
 const emptyForm = { product_name: '', description: '', price: '', quantity: '' }
 
-function Products({ username, onLogout }) {
+function Products({ user, onLogout }) {
   const [products, setProducts] = useState([])
   const [form, setForm] = useState(emptyForm)
   const [editingId, setEditingId] = useState(null)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(true)
+  const isAdmin = user.role === 'admin'
 
   const handleError = (err) => {
     if (err.response?.status === 401) {
@@ -166,7 +167,9 @@ function Products({ username, onLogout }) {
       <header className="topbar">
         <h1>Product Management System</h1>
         <div>
-          <span className="muted">Logged in as {username}</span>
+          <span className="muted">
+            Logged in as {user.username} ({user.role})
+          </span>
           <button className="secondary" onClick={onLogout}>
             Logout
           </button>
@@ -176,61 +179,63 @@ function Products({ username, onLogout }) {
       {error && <div className="alert">{error}</div>}
       {message && <div className="success">{message}</div>}
 
-      <form className="card" onSubmit={handleSubmit}>
-        <h2>{editingId ? 'Edit Product' : 'Add Product'}</h2>
-        <div className="grid">
-          <div>
-            <label>Product name</label>
-            <input
-              name="product_name"
-              value={form.product_name}
-              onChange={handleChange}
-              required
-            />
+      {isAdmin && (
+        <form className="card" onSubmit={handleSubmit}>
+          <h2>{editingId ? 'Edit Product' : 'Add Product'}</h2>
+          <div className="grid">
+            <div>
+              <label>Product name</label>
+              <input
+                name="product_name"
+                value={form.product_name}
+                onChange={handleChange}
+                required
+              />
+            </div>
+            <div>
+              <label>Price</label>
+              <input
+                name="price"
+                type="number"
+                step="0.01"
+                min="0"
+                value={form.price}
+                onChange={handleChange}
+                required
+              />
+            </div>
+            <div>
+              <label>Quantity</label>
+              <input
+                name="quantity"
+                type="number"
+                min="0"
+                value={form.quantity}
+                onChange={handleChange}
+                required
+              />
+            </div>
           </div>
-          <div>
-            <label>Price</label>
-            <input
-              name="price"
-              type="number"
-              step="0.01"
-              min="0"
-              value={form.price}
-              onChange={handleChange}
-              required
-            />
+          <label>Description</label>
+          <textarea
+            name="description"
+            rows="2"
+            value={form.description}
+            onChange={handleChange}
+          />
+          <div className="actions">
+            <button type="submit">{editingId ? 'Update' : 'Add'}</button>
+            {editingId && (
+              <button type="button" className="secondary" onClick={resetForm}>
+                Cancel
+              </button>
+            )}
           </div>
-          <div>
-            <label>Quantity</label>
-            <input
-              name="quantity"
-              type="number"
-              min="0"
-              value={form.quantity}
-              onChange={handleChange}
-              required
-            />
-          </div>
-        </div>
-        <label>Description</label>
-        <textarea
-          name="description"
-          rows="2"
-          value={form.description}
-          onChange={handleChange}
-        />
-        <div className="actions">
-          <button type="submit">{editingId ? 'Update' : 'Add'}</button>
-          {editingId && (
-            <button type="button" className="secondary" onClick={resetForm}>
-              Cancel
-            </button>
-          )}
-        </div>
-      </form>
+        </form>
+      )}
 
       <div className="card">
-        <h2>Product List</h2>
+        <h2>{isAdmin ? 'Product List' : 'Products'}</h2>
         {loading ? (
           <p className="muted">Loading...</p>
         ) : products.length === 0 ? (
@@ -245,7 +250,7 @@ function Products({ username, onLogout }) {
                   <th>Description</th>
                   <th>Price</th>
                   <th>Quantity</th>
-                  <th>Actions</th>
+                  {isAdmin && <th>Actions</th>}
                 </tr>
               </thead>
               <tbody>
@@ -256,17 +261,19 @@ function Products({ username, onLogout }) {
                     <td>{p.description}</td>
                     <td>{Number(p.price).toFixed(2)}</td>
                     <td>{p.quantity}</td>
-                    <td className="row-actions">
-                      <button className="small" onClick={() => handleEdit(p)}>
-                        Edit
-                      </button>
-                      <button
-                        className="small danger"
-                        onClick={() => handleDelete(p)}
-                      >
-                        Delete
-                      </button>
-                    </td>
+                    {isAdmin && (
+                      <td className="row-actions">
+                        <button className="small" onClick={() => handleEdit(p)}>
+                          Edit
+                        </button>
+                        <button
+                          className="small danger"
+                          onClick={() => handleDelete(p)}
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -280,27 +287,73 @@ function Products({ username, onLogout }) {
 
 /* ------------------------------ APP ------------------------------ */
 export default function App() {
-  const [user, setUser] = useState(
-    localStorage.getItem('access_token') ? localStorage.getItem('username') : null
+  const [user, setUser] = useState(null)
+  const [checkingSession, setCheckingSession] = useState(
+    () => Boolean(localStorage.getItem('access_token'))
   )
+  const [authError, setAuthError] = useState('')
+
+  useEffect(() => {
+    if (!localStorage.getItem('access_token')) return
+
+    let active = true
+    api.get('/api/me')
+      .then(({ data }) => {
+        if (active) {
+          setUser({
+            username: localStorage.getItem('username') || '',
+            role: data.role,
+          })
+        }
+      })
+      .catch((err) => {
+        if (!active) return
+        if (err.response?.status === 401) {
+          localStorage.removeItem('access_token')
+          localStorage.removeItem('refresh_token')
+          localStorage.removeItem('username')
+        } else {
+          setAuthError(getError(err))
+        }
+      })
+      .finally(() => {
+        if (active) setCheckingSession(false)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [])
 
   const logout = async () => {
+    let logoutError = ''
     try {
       await api.post('/api/logout', {
         refresh_token: localStorage.getItem('refresh_token'),
       })
-    } catch {
-      // kahit mag-error, ituloy ang pag-logout sa browser
+    } catch (err) {
+      logoutError = `Signed out locally, but the server logout failed: ${getError(err)}`
     }
     localStorage.removeItem('access_token')
     localStorage.removeItem('refresh_token')
     localStorage.removeItem('username')
     setUser(null)
+    setAuthError(logoutError)
+  }
+
+  if (checkingSession) {
+    return <div className="login-wrap"><p>Checking session...</p></div>
   }
 
   return user ? (
-    <Products username={user} onLogout={logout} />
+    <Products user={user} onLogout={logout} />
   ) : (
-    <Login onLogin={setUser} />
+    <Login
+      initialError={authError}
+      onLogin={(userData) => {
+        setAuthError('')
+        setUser(userData)
+      }}
+    />
   )
 }
